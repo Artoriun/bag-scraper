@@ -21,10 +21,18 @@ async function logSidebarSamenvattingContent(url) {
     console.log(msg.text());
   });
 
-  const contentObject = await page.evaluate(() => {
-    const keysArray = [];
-    const valuesArray = [];
-    
+  function getObjectIdFromUrl(url) {
+    try {
+      const urlObject = new URL(url);
+      const params = new URLSearchParams(urlObject.search);
+      return params.get('objectId') || null;
+    } catch (error) {
+      console.error('Error parsing URL:', error);
+      return null;
+    }
+  }
+
+  const contentObject = await page.evaluate(() => {        
     const parentElement = document.querySelector('[data-testid="samenvatting"]');
     if (!parentElement || !parentElement.children.length >= 2) return [];
     
@@ -32,6 +40,13 @@ async function logSidebarSamenvattingContent(url) {
     if (!secondChild) return [];
 
     const elements = Array.from(secondChild.children[0].children);
+
+    const keysArray = [];
+    const valuesArray = [];
+  
+    keysArray.push('BagID');
+    valuesArray.push(document.location.search.match(/objectId=([^&]+)/)[1]);
+
     keysArray.push(elements[0].querySelector('h3').textContent.trim());
     keysArray.push('Postcode')
     keysArray.push('Woonplaats')
