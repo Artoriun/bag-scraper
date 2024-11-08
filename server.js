@@ -5,7 +5,10 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://*.heroku.com'],
+  credentials: true
+}));
 
 async function logSidebarSamenvattingContent(url) {
   const browser = await puppeteer.launch();
