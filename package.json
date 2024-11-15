@@ -1,18 +1,33 @@
 {
   "name": "excel-parser-node",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
+  "bin": {
+    "server": "./server.js"
+  },
   "keywords": [],
-  "author": "",
+  "author": "Peter de Keijzer",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.1",
+    "open": "^10.1.0",
     "puppeteer": "^23.7.0"
+  },
+  "pkg": {
+    "targets": [
+      "node16",
+      "node18"
+    ],
+    "config": {
+      "outputDirectory": "dist",
+      "esModules": true
+    }
   }
 }

@@ -1,14 +1,13 @@
-const express = require('express');
-const puppeteer = require('puppeteer');
-const cors = require('cors');
+import open from 'open';
+import express from 'express';
+import puppeteer from 'puppeteer';
+import cors from 'cors';
+import readline from 'readline';
 
 const app = express();
 const port = process.env.PORT || 3001;
 
-app.use(cors({
-  origin: ['http://localhost:3000', 'https://*.herokuapp.com'],
-  credentials: true
-}));
+app.use(cors());
 
 async function logSidebarSamenvattingContent(url) {
   const browser = await puppeteer.launch({
@@ -23,18 +22,7 @@ async function logSidebarSamenvattingContent(url) {
     console.log(msg.text());
   });
 
-  function getObjectIdFromUrl(url) {
-    try {
-      const urlObject = new URL(url);
-      const params = new URLSearchParams(urlObject.search);
-      return params.get('objectId') || null;
-    } catch (error) {
-      console.error('Error parsing URL:', error);
-      return null;
-    }
-  }
-
-  const contentObject = await page.evaluate(() => {        
+  const contentObject = await page.evaluate(() => {  
     const parentElement = document.querySelector('[data-testid="samenvatting"]');
     if (!parentElement || !parentElement.children.length >= 2) return [];
     
@@ -47,7 +35,7 @@ async function logSidebarSamenvattingContent(url) {
     const valuesArray = [];
   
     keysArray.push('BagID');
-    valuesArray.push(document.location.search.match(/objectId=([^&]+)/)[1]);
+    valuesArray.push("'" + document.location.search.match(/objectId=([^&]+)/)[1]);
 
     keysArray.push(elements[0].querySelector('h3').textContent.trim());
     keysArray.push('Postcode')
@@ -81,6 +69,7 @@ async function logSidebarSamenvattingContent(url) {
 
     console.log(keysArray);
     console.log(valuesArray);
+
     return { keys: keysArray, values: valuesArray, content: elements.map(el => el.textContent.trim()) };
   });
 
@@ -104,12 +93,12 @@ app.get('/', async (req, res) => {
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Enter a URL</title>
+          <title>BAG Scraper</title>
           <style>
             body { font-family: Arial, sans-serif; max-width: 100%; margin: 0 auto; padding: 20px; }
             h1 { color: #333; }
             input[type="text"], button { margin-top: 20px; }
-            #resultContainer { border: 1px solid #ccc; padding: 20px; margin-top: 20px; }
+            #resultContainer { padding: 20px; margin-top: 20px; }
           </style>
         </head>
         <body>
@@ -119,23 +108,6 @@ app.get('/', async (req, res) => {
             <button type="submit">Submit</button>
           </form>
           <div id="resultContainer"></div>
-          <script>
-            document.addEventListener('DOMContentLoaded', () => {
-              const form = document.querySelector('form');
-              form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const urlInput = document.querySelector('input[name="url"]');
-                const resultContainer = document.getElementById('resultContainer');
-                
-                fetch(form.action + '?' + new URLSearchParams({url: urlInput.value}).toString())
-                  .then(response => response.text())
-                  .then(html => {
-                    resultContainer.innerHTML = html;
-                  })
-                  .catch(error => console.error('Error:', error));
-              });
-            });
-          </script>
         </body>
       </html>
       `;
@@ -158,6 +130,7 @@ app.get('/', async (req, res) => {
           tableHtml += '<td>' + value + '</td>';
         });
         tableHtml += '</tr>';
+
         return tableHtml;
       }
 
@@ -185,32 +158,27 @@ app.get('/', async (req, res) => {
           </style>
         </head>
         <body>
-          <h1>Scraped Content from ${contentObject.values[0]}</h1>
+          <h1>Please Enter a URL</h1>
+          <form action="/" method="GET">
+            <input type="text" name="url" placeholder="Enter URL here" required>
+            <button type="submit">Submit</button>
+          </form>
+          <h1>Scraped Content from ${contentObject.values[0].slice(1)}</h1>
           <div>${createTableHtml(contentObject, true)}</div>
           <h2>With Headers</h2>
-          <textarea id="contentTextarea" rows="10" cols="50">${createTableHtml(contentObject, true)}</textarea>
+          <textarea id="contentHeadersTextarea" rows="10" cols="50">${createTableHtml(contentObject, true)}</textarea>
           <h2>Without Headers</h2>
           <textarea id="contentTextarea" rows="10" cols="50">${createTableHtml(contentObject, false)}</textarea>
           <script>
-            document.addEventListener('DOMContentLoaded', () => {
-              const textarea = document.getElementById('contentTextarea');
-              const contentTable = document.getElementById('contentTable');
-
-              function copyToClipboard(text) {
-                navigator.clipboard.writeText(text).then(
-                  function() {
-                    console.log('Copied to clipboard successfully');
-                  },
-                  function(err) {
-                    console.error('Could not copy text: ', err);
-                  }
-                );
-              }
-
-              textarea.addEventListener('click', () => {
-                copyToClipboard(textarea.value);
-              });
+          document.addEventListener('DOMContentLoaded', function() {
+            // alert(${JSON.stringify(createTableHtml(contentObject, false))});
+            navigator.clipboard.writeText(${JSON.stringify(createTableHtml(contentObject, false))}).then(function() {
+              console.log('Content copied to clipboard');
+            }).catch(function(err) {
+              console.log('Failed to copy content: ', err);
+              alert('Failed to copy content: ', err);
             });
+          });
           </script>
         </body>
       </html>
@@ -226,4 +194,15 @@ app.get('/', async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
+  open(`http://localhost:${port}`);
 });
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+})
+
+console.log("Press Enter to exit...")
+rl.on('line', () => {
+  process.exit(0);
+})
